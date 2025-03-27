@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(main)
 
+include_directories(EEQ)
+
 add_executable(main tests.c state_machine.c EEQ/event_queue.c)
 
 install(TARGETS main)
