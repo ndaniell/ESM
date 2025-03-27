@@ -8,8 +8,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -26,39 +26,43 @@
 
 #include "event_queue.h"
 
-
 #ifdef __cplusplus
-extern "C"
-{
-#endif  // __cplusplus
+extern "C" {
+#endif // __cplusplus
 
-typedef int state_id_t;
-typedef int (*state_machine_event_handler_t)(state_id_t, void*);
+typedef uint32_t state_id_t;
+typedef state_id_t (*state_machine_event_handler_t)(event_t);
+typedef state_id_t (*state_machine_guard_t)();
+typedef state_id_t (*state_machine_on_enter_t)();
+typedef state_id_t (*state_machine_on_exit_t)();
 
 typedef enum {
-    STATE_MACHINE_STATE_INIT,
-    STATE_MACHINE_STATE_RUN,
-    STATE_MACHINE_STATE_ERROR,
-    STATE_MACHINE_STATE_MAX
+  STATE_MACHINE_STATE_INIT,
+  STATE_MACHINE_STATE_RUN,
+  STATE_MACHINE_STATE_ERROR,
+  STATE_MACHINE_STATE_MAX
 } state_machine_state_t;
 
 typedef struct {
-    state_id_t state;
-    state_machine_event_handler_t state_event_handler;
+  state_id_t state;
+  state_machine_event_handler_t state_event_handler;
+  state_machine_guard_t state_guard;
+  state_machine_on_enter_t state_on_enter;
+  state_machine_on_exit_t state_on_exit;
 } state_table_entry_t;
 
 typedef struct {
-    state_table_entry_t state_table[STATE_MACHINE_STATE_MAX];
-    state_id_t current_state;
+  state_table_entry_t state_table[STATE_MACHINE_STATE_MAX];
+  state_id_t current_state;
 } state_machine_t;
 
-state_machine_t* state_machine_create(void);
-void state_machine_destroy(state_machine_t* state_machine);
-void state_machine_init(state_machine_t* state_machine);
-void state_machine_event(state_machine_t* state_machine, event_id_t event, void* data);
+state_machine_t *state_machine_create(void);
+void state_machine_destroy(state_machine_t *state_machine);
+void state_machine_init(state_machine_t *state_machine);
+void state_machine_event(state_machine_t *state_machine, event_t event);
 
 #ifdef __cplusplus
 }
-#endif  // __cplusplus
+#endif // __cplusplus
 
 #endif /* STATE_MACHINE_H */
