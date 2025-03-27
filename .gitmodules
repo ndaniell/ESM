@@ -1,0 +1,3 @@
+[submodule "EEQ"]
+	path = EEQ
+	url = https://github.com/ndaniell/EEQ.git
