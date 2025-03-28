@@ -26,38 +26,112 @@
 #include "state_machine.h"
 
 
+typedef enum {
+    TEST_EVENT_ID_RESET = 0,
+    TEST_EVENT_ID_RUN,
+    TEST_EVENT_ID_ERROR,
+    TEST_EVENT_ID_MAX
+} test_event_id_t;
+
+static event_t reset_event = {TEST_EVENT_ID_RESET, 0, NULL};
+static event_t run_event = {TEST_EVENT_ID_RUN, 0, NULL};
+static event_t error_event = {TEST_EVENT_ID_ERROR, 0, NULL};
+
+
 state_id_t state_init_event_handler(event_t event) {
     printf("State init\n");
-    return STATE_MACHINE_STATE_RUN;
+    switch (event.event_id) {
+        case TEST_EVENT_ID_RUN:
+            return STATE_MACHINE_STATE_RUN;
+        case TEST_EVENT_ID_ERROR:
+            return STATE_MACHINE_STATE_ERROR;
+        default:
+            return STATE_MACHINE_STATE_INIT;
+    }
 }
 
 state_id_t state_run_event_handler(event_t event) {
     printf("State run\n");
-    return STATE_MACHINE_STATE_ERROR;
+    switch (event.event_id) {
+        case TEST_EVENT_ID_RUN:
+            return STATE_MACHINE_STATE_RUN;
+        case TEST_EVENT_ID_ERROR:
+            return STATE_MACHINE_STATE_ERROR;
+        default:
+            return STATE_MACHINE_STATE_INIT;
+    }
 }
 
 state_id_t state_error_event_handler(event_t event) {
     printf("State error\n");
-    return STATE_MACHINE_STATE_INIT;
+    switch (event.event_id) {
+        case TEST_EVENT_ID_RUN:
+            return STATE_MACHINE_STATE_RUN;
+        case TEST_EVENT_ID_ERROR:
+            return STATE_MACHINE_STATE_ERROR;
+        default:
+            return STATE_MACHINE_STATE_INIT;
+    }
 }
 
-int simple_test(void) {
-    state_machine_t* state_machine = state_machine_create();
-    state_machine->state_table[STATE_MACHINE_STATE_INIT].state_event_handler = state_init_event_handler;
-    state_machine->state_table[STATE_MACHINE_STATE_RUN].state_event_handler = state_run_event_handler;
-    state_machine->state_table[STATE_MACHINE_STATE_ERROR].state_event_handler = state_error_event_handler;
-    state_machine_event(state_machine, (event_t){0, 0, NULL});
-    state_machine_event(state_machine, (event_t){0, 0, NULL});
-    state_machine_event(state_machine, (event_t){0, 0, NULL});
-    state_machine_event(state_machine, (event_t){0, 0, NULL});
+void state_init_on_enter_handler() {
+    printf("State init on enter\n");
+}
 
-    state_machine_init(state_machine);
+void state_init_on_exit_handler() {
+    printf("State init on exit\n");
+}
+
+void state_run_on_enter_handler(void) {
+    printf("State run on enter\n");
+}
+
+void state_run_on_exit_handler(void) {
+    printf("State run on exit\n");
+}
+
+void state_error_on_enter_handler() {
+    printf("State error on enter\n");
+}
+
+void state_error_on_exit_handler() {
+    printf("State error on exit\n");
+}
+
+int simple_walk_test(void) {
+    state_machine_t* state_machine = state_machine_create(STATE_MACHINE_STATE_INIT);
+
+    state_machine_assign_event_handler(state_machine, STATE_MACHINE_STATE_INIT, state_init_event_handler);
+    state_machine_assign_on_enter_handler(state_machine, STATE_MACHINE_STATE_INIT, state_init_on_enter_handler);
+    state_machine_assign_on_exit_handler(state_machine, STATE_MACHINE_STATE_INIT, state_init_on_exit_handler);
+
+    state_machine_assign_event_handler(state_machine, STATE_MACHINE_STATE_RUN, state_run_event_handler);
+    state_machine_assign_on_enter_handler(state_machine, STATE_MACHINE_STATE_RUN, state_run_on_enter_handler);
+    state_machine_assign_on_exit_handler(state_machine, STATE_MACHINE_STATE_RUN, state_run_on_exit_handler);
+
+    state_machine_assign_event_handler(state_machine, STATE_MACHINE_STATE_ERROR, state_error_event_handler);
+    state_machine_assign_on_enter_handler(state_machine, STATE_MACHINE_STATE_ERROR, state_error_on_enter_handler);
+    state_machine_assign_on_exit_handler(state_machine, STATE_MACHINE_STATE_ERROR, state_error_on_exit_handler);
+
+    assert(state_machine->current_state == STATE_MACHINE_STATE_INIT);
+
+    state_machine_event(state_machine, run_event);
+    assert(state_machine->current_state == STATE_MACHINE_STATE_RUN);
+
+    state_machine_event(state_machine, error_event);
+    assert(state_machine->current_state == STATE_MACHINE_STATE_ERROR);
+
+    state_machine_event(state_machine, run_event);
+    assert(state_machine->current_state == STATE_MACHINE_STATE_RUN);
+
+    state_machine_event(state_machine, reset_event);
+    assert(state_machine->current_state == STATE_MACHINE_STATE_INIT);
+
     state_machine_destroy(state_machine);
     return 0;
 }
 
-
 int main(void) {
-    simple_test();
+    simple_walk_test();
     return 0;
 }

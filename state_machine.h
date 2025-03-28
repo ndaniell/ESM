@@ -32,12 +32,11 @@ extern "C" {
 
 typedef uint32_t state_id_t;
 typedef state_id_t (*state_machine_event_handler_t)(event_t);
-typedef state_id_t (*state_machine_guard_t)();
-typedef state_id_t (*state_machine_on_enter_t)();
-typedef state_id_t (*state_machine_on_exit_t)();
+typedef void (*state_machine_on_enter_t)();
+typedef void (*state_machine_on_exit_t)();
 
 typedef enum {
-  STATE_MACHINE_STATE_INIT,
+  STATE_MACHINE_STATE_INIT = 0,
   STATE_MACHINE_STATE_RUN,
   STATE_MACHINE_STATE_ERROR,
   STATE_MACHINE_STATE_MAX
@@ -46,7 +45,6 @@ typedef enum {
 typedef struct {
   state_id_t state;
   state_machine_event_handler_t state_event_handler;
-  state_machine_guard_t state_guard;
   state_machine_on_enter_t state_on_enter;
   state_machine_on_exit_t state_on_exit;
 } state_table_entry_t;
@@ -56,10 +54,13 @@ typedef struct {
   state_id_t current_state;
 } state_machine_t;
 
-state_machine_t *state_machine_create(void);
+state_machine_t *state_machine_create(state_id_t initial_state);
 void state_machine_destroy(state_machine_t *state_machine);
-void state_machine_init(state_machine_t *state_machine);
 void state_machine_event(state_machine_t *state_machine, event_t event);
+
+void state_machine_assign_event_handler(state_machine_t *state_machine, state_id_t state, state_machine_event_handler_t event_handler);
+void state_machine_assign_on_enter_handler(state_machine_t *state_machine, state_id_t state, state_machine_on_enter_t on_enter);
+void state_machine_assign_on_exit_handler(state_machine_t *state_machine, state_id_t state, state_machine_on_exit_t on_exit);
 
 #ifdef __cplusplus
 }
