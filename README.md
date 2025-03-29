@@ -48,20 +48,22 @@ void state_machine_event(state_machine_t* state_machine, event_t event);
 
 #### Transition Management
 ```c
-// Add transition without guard
+// Add transition with optional transition handler
 void state_machine_add_transition(
     state_machine_t* state_machine,
     state_id_t state_a,
     state_id_t state_b,
-    event_id_t event_id
+    event_id_t event_id,
+    state_machine_event_handler_t on_transition  // Optional transition handler
 );
 
-// Add transition with guard condition
+// Add transition with guard and optional transition handler
 void state_machine_add_transition_with_guard(
     state_machine_t* state_machine,
     state_id_t state_a,
     state_id_t state_b,
     event_id_t event_id,
+    state_machine_event_handler_t on_transition, // Optional transition handler
     state_machine_guard_t guard
 );
 ```
