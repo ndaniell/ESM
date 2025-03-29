@@ -34,6 +34,5 @@ add_custom_target(lcov_coverage
         '*tests.c'
     # Generate HTML report
     COMMAND genhtml ${CMAKE_BINARY_DIR}/lcov_coverage/filtered_coverage.info --output-directory ${CMAKE_BINARY_DIR}/lcov_coverage/html
-    #WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Generating lcov coverage reports"
 )
