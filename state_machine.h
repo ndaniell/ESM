@@ -30,37 +30,42 @@
 extern "C" {
 #endif // __cplusplus
 
-typedef uint32_t state_id_t;
-typedef state_id_t (*state_machine_event_handler_t)(event_t);
-typedef void (*state_machine_on_enter_t)();
-typedef void (*state_machine_on_exit_t)();
+#define MAX_EVENTS_PER_STATE 20
+#define STATE_MACHINE_STATE_MAX 10
 
-typedef enum {
-  STATE_MACHINE_STATE_INIT = 0,
-  STATE_MACHINE_STATE_RUN,
-  STATE_MACHINE_STATE_ERROR,
-  STATE_MACHINE_STATE_MAX
-} state_machine_state_t;
+typedef uint32_t state_id_t;
+typedef void (*state_machine_event_handler_t)(event_t event);
 
 typedef struct {
   state_id_t state;
-  state_machine_event_handler_t state_event_handler;
-  state_machine_on_enter_t state_on_enter;
-  state_machine_on_exit_t state_on_exit;
+  state_machine_event_handler_t state_on_enter;
+  state_machine_event_handler_t state_on_exit;
 } state_table_entry_t;
 
 typedef struct {
-  state_table_entry_t state_table[STATE_MACHINE_STATE_MAX];
+  int init;
   state_id_t current_state;
+  state_id_t next_state;
+  event_id_t event_id;
+  state_machine_event_handler_t on_transition;
+} state_machine_transition_t;
+
+typedef struct {
+  state_table_entry_t state_table[STATE_MACHINE_STATE_MAX];
+  state_id_t initial_state;
+  state_id_t current_state;
+  state_machine_transition_t state_transitions[STATE_MACHINE_STATE_MAX][MAX_EVENTS_PER_STATE];
 } state_machine_t;
+
 
 state_machine_t *state_machine_create(state_id_t initial_state);
 void state_machine_destroy(state_machine_t *state_machine);
 void state_machine_event(state_machine_t *state_machine, event_t event);
+void state_machine_add_transition(state_machine_t *state_machine, state_id_t state_a, state_id_t state_b, event_id_t event_id);
 
-void state_machine_assign_event_handler(state_machine_t *state_machine, state_id_t state, state_machine_event_handler_t event_handler);
-void state_machine_assign_on_enter_handler(state_machine_t *state_machine, state_id_t state, state_machine_on_enter_t on_enter);
-void state_machine_assign_on_exit_handler(state_machine_t *state_machine, state_id_t state, state_machine_on_exit_t on_exit);
+
+void state_machine_assign_on_enter_handler(state_machine_t *state_machine, state_id_t state, state_machine_event_handler_t on_enter);
+void state_machine_assign_on_exit_handler(state_machine_t *state_machine, state_id_t state, state_machine_event_handler_t on_exit);
 
 #ifdef __cplusplus
 }

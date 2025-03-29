@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "state_machine.h": "c"
+        "state_machine.h": "c",
+        "stdint.h": "c",
+        "event_queue.h": "c",
+        "string.h": "c"
     }
 }
