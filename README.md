@@ -1,3 +1,4 @@
+[![ci](https://github.com/ndaniell/ESM/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ndaniell/ESM/actions/workflows/ci.yml)
 # ESM (Embedded State Machine)
 
 A lightweight, efficient state machine implementation designed for embedded systems. ESM provides a flexible framework for implementing finite state machines with support for guards, transition handlers, and state entry/exit actions.
