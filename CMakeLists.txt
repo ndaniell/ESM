@@ -30,8 +30,7 @@ add_custom_target(lcov_coverage
     COMMAND lcov --capture --directory ${CMAKE_BINARY_DIR}/CMakeFiles/main.dir/ --output-file lcov_coverage/coverage.info
     COMMAND lcov --remove ${CMAKE_BINARY_DIR}/lcov_coverage/coverage.info 
         --output-file ${CMAKE_BINARY_DIR}/lcov_coverage/filtered_coverage.info
-        '*\\EEQ\\*'
-        '*/EEQ/*'
+        '*EEQ*'
         '*tests.c'
     # Generate HTML report
     COMMAND genhtml ${CMAKE_BINARY_DIR}/lcov_coverage/filtered_coverage.info --output-directory ${CMAKE_BINARY_DIR}/lcov_coverage/html
