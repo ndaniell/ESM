@@ -63,12 +63,18 @@ typedef struct {
 state_machine_t *state_machine_create(state_id_t initial_state);
 void state_machine_destroy(state_machine_t *state_machine);
 void state_machine_event(state_machine_t *state_machine, event_t event);
-void state_machine_add_transition(state_machine_t *state_machine, state_id_t state_a, state_id_t state_b, event_id_t event_id);
+void state_machine_add_transition(
+    state_machine_t *state_machine, 
+    state_id_t state_a, 
+    state_id_t state_b, 
+    event_id_t event_id, 
+    state_machine_event_handler_t on_transition);
 void state_machine_add_transition_with_guard(
     state_machine_t *state_machine,
     state_id_t state_a,
-    state_id_t state_b,
+    state_id_t state_b, 
     event_id_t event_id,
+    state_machine_event_handler_t on_transition,
     state_machine_guard_t guard);
 
 

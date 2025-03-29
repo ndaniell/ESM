@@ -113,6 +113,12 @@ int guard_check_data_value(event_t event) {
     return *(int*)event.event_data == 42;
 }
 
+void on_transition_handler(event_t event) {
+    #if DEBUG_STATE_MACHINE
+        printf("State transition\n");
+    #endif
+}
+
 int simple_walk_test(void) {
     state_machine_t* state_machine = state_machine_create(STATE_MACHINE_STATE_INIT);
 
@@ -125,10 +131,10 @@ int simple_walk_test(void) {
     state_machine_assign_on_enter_handler(state_machine, STATE_MACHINE_STATE_ERROR, state_error_on_enter_handler);
     state_machine_assign_on_exit_handler(state_machine, STATE_MACHINE_STATE_ERROR, state_error_on_exit_handler);
 
-    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_INIT, STATE_MACHINE_STATE_RUN, TEST_EVENT_ID_RUN);
-    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_RUN, STATE_MACHINE_STATE_ERROR, TEST_EVENT_ID_ERROR);
-    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_RUN, STATE_MACHINE_STATE_INIT, TEST_EVENT_ID_RESET);
-    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_ERROR, STATE_MACHINE_STATE_RUN, TEST_EVENT_ID_RUN);
+    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_INIT, STATE_MACHINE_STATE_RUN, TEST_EVENT_ID_RUN, NULL);
+    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_RUN, STATE_MACHINE_STATE_ERROR, TEST_EVENT_ID_ERROR, NULL);
+    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_RUN, STATE_MACHINE_STATE_INIT, TEST_EVENT_ID_RESET, NULL);
+    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_ERROR, STATE_MACHINE_STATE_RUN, TEST_EVENT_ID_RUN, NULL);
 
     assert(state_machine->current_state == STATE_MACHINE_STATE_INIT);
 
@@ -154,21 +160,39 @@ void call_dot_command(const char* dot_file, const char* png_file) {
     system(command);
 }
 
+void cleanup_test_files(const char* pattern) {
+    char command[256];
+#ifdef _WIN32
+    snprintf(command, sizeof(command), "del %s 2>nul", pattern);
+#else
+    snprintf(command, sizeof(command), "rm -f %s 2>/dev/null", pattern);
+#endif
+    system(command);
+}
+
 void visualization_test(void) {
+    printf("\nVisualization Test:\n");
+    printf("==================\n\n");
+
     state_machine_t* state_machine = state_machine_create(STATE_MACHINE_STATE_INIT);
 
-    // Add the same transitions as in simple_walk_test
-    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_INIT, STATE_MACHINE_STATE_RUN, TEST_EVENT_ID_RUN);
-    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_RUN, STATE_MACHINE_STATE_ERROR, TEST_EVENT_ID_ERROR);
-    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_RUN, STATE_MACHINE_STATE_INIT, TEST_EVENT_ID_RESET);
-    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_ERROR, STATE_MACHINE_STATE_RUN, TEST_EVENT_ID_RUN);
+    // Add transitions with different configurations to test visualization
+    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_INIT, STATE_MACHINE_STATE_RUN, TEST_EVENT_ID_RUN, NULL);
+    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_RUN, STATE_MACHINE_STATE_ERROR, TEST_EVENT_ID_ERROR, NULL);
+    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_RUN, STATE_MACHINE_STATE_INIT, TEST_EVENT_ID_RESET, NULL);
+    state_machine_add_transition(state_machine, STATE_MACHINE_STATE_ERROR, STATE_MACHINE_STATE_RUN, TEST_EVENT_ID_RUN, NULL);
 
     // Generate visualization
     state_machine_save_dot(state_machine, "state_machine.dot");
-    printf("State machine visualization saved to 'state_machine.dot'\n");
-    printf("To generate PNG, run: dot -Tpng state_machine.dot -o state_machine.png\n");
+    printf("[PASS] Generated state machine visualization\n");
 
     state_machine_destroy(state_machine);
+
+    // Cleanup generated files
+    printf("Cleaning up test files...\n");
+    cleanup_test_files("state_machine_*.dot");
+    cleanup_test_files("state_machine_*.png");
+    printf("[DONE] Cleaned up visualization files\n");
 }
 
 // Helper function to generate a random event
@@ -196,20 +220,24 @@ void fuzz_test(void) {
             state_id_t to_state = rand() % num_states;
             event_id_t event_id = rand() % MAX_EVENTS_PER_STATE;
             
-            state_machine_add_transition(state_machine, from_state, to_state, event_id);
+            state_machine_add_transition(state_machine, from_state, to_state, event_id, NULL);
         }
 
+        #if DEBUG_STATE_MACHINE
         // Generate visualization of initial state
-        char dot_filename[64];
-        char png_filename[64];
-        snprintf(dot_filename, sizeof(dot_filename), "fuzz_test_%d_initial.dot", iteration);
-        snprintf(png_filename, sizeof(png_filename), "fuzz_test_%d_initial.png", iteration);
-        state_machine_save_dot(state_machine, dot_filename);
-        call_dot_command(dot_filename, png_filename);
+            char dot_filename[64];
+            char png_filename[64];
+            snprintf(dot_filename, sizeof(dot_filename), "fuzz_test_%d_initial.dot", iteration);
+            snprintf(png_filename, sizeof(png_filename), "fuzz_test_%d_initial.png", iteration);
+            state_machine_save_dot(state_machine, dot_filename);
+            call_dot_command(dot_filename, png_filename);
+        #endif
 
         // Send random events
-        printf("Fuzz test iteration %d: Testing state machine with %d states\n", 
-               iteration, num_states);
+        #if DEBUG_STATE_MACHINE
+            printf("Fuzz test iteration %d: Testing state machine with %d states\n", 
+                   iteration, num_states);
+        #endif
         
         for (int i = 0; i < FUZZ_NUM_EVENTS; i++) {
             event_t random_event = generate_random_event(MAX_EVENTS_PER_STATE);
@@ -220,21 +248,31 @@ void fuzz_test(void) {
             // Verify that the current state is within bounds
             assert(state_machine->current_state < num_states);
             
-            if (previous_state != state_machine->current_state) {
-                printf("  Event %d triggered transition: %d -> %d\n", 
-                       random_event.event_id, previous_state, state_machine->current_state);
-            }
+            #if DEBUG_STATE_MACHINE
+                if (previous_state != state_machine->current_state) {
+                    printf("  Event %d triggered transition: %d -> %d\n", 
+                           random_event.event_id, previous_state, state_machine->current_state);
+                }
+            #endif
         }
 
         // Generate visualization of final state
-        snprintf(dot_filename, sizeof(dot_filename), "fuzz_test_%d_final.dot", iteration);
-        snprintf(png_filename, sizeof(png_filename), "fuzz_test_%d_final.png", iteration);
-        state_machine_save_dot(state_machine, dot_filename);
-        call_dot_command(dot_filename, png_filename);
+        #if DEBUG_STATE_MACHINE
+            snprintf(dot_filename, sizeof(dot_filename), "fuzz_test_%d_final.dot", iteration);
+            snprintf(png_filename, sizeof(png_filename), "fuzz_test_%d_final.png", iteration);
+            state_machine_save_dot(state_machine, dot_filename);
+            call_dot_command(dot_filename, png_filename);
+        #endif
 
         state_machine_destroy(state_machine);
-        printf("Fuzz test iteration %d completed successfully\n\n", iteration);
+        #if DEBUG_STATE_MACHINE
+            printf("Fuzz test iteration %d completed successfully\n\n", iteration);
+        #endif
     }
+
+    // Add cleanup at the end of the function
+    cleanup_test_files("fuzz_test_*.dot");
+    cleanup_test_files("fuzz_test_*.png");
 }
 
 void print_structure_statistics(void) {
@@ -355,7 +393,7 @@ void performance_test(void) {
     
     // Create a circular pattern of states
     for (int i = 0; i < PERF_NUM_TRANSITIONS; i++) {
-        state_machine_add_transition(state_machine, i, (i + 1) % PERF_NUM_TRANSITIONS, i);
+        state_machine_add_transition(state_machine, i, (i + 1) % PERF_NUM_TRANSITIONS, i, NULL);
     }
     
     // Create test events
@@ -376,9 +414,9 @@ void performance_test(void) {
     
     // Print results
     printf("Results:\n");
-    printf("  Average event processing time: %.3f µs\n", stats.avg_event_processing_us);
-    printf("  Minimum event processing time: %.3f µs\n", stats.min_event_processing_us);
-    printf("  Maximum event processing time: %.3f µs\n", stats.max_event_processing_us);
+    printf("  Average event processing time: %.3f us\n", stats.avg_event_processing_us);
+    printf("  Minimum event processing time: %.3f us\n", stats.min_event_processing_us);
+    printf("  Maximum event processing time: %.3f us\n", stats.max_event_processing_us);
     printf("  Events per second: %.2f\n", 1e6 / stats.avg_event_processing_us);
     printf("  Total state changes: %lu\n", stats.total_state_changes);
     printf("  State change ratio: %.2f%%\n", 
@@ -393,8 +431,8 @@ void performance_test(void) {
     
     perf_stats_t stats_with_handlers = run_performance_test(state_machine, test_events, PERF_NUM_TRANSITIONS);
     
-    printf("  Average event processing time: %.3f µs\n", stats_with_handlers.avg_event_processing_us);
-    printf("  Handler overhead: %.3f µs\n", 
+    printf("  Average event processing time: %.3f us\n", stats_with_handlers.avg_event_processing_us);
+    printf("  Handler overhead: %.3f us\n", 
            stats_with_handlers.avg_event_processing_us - stats.avg_event_processing_us);
     
     state_machine_destroy(state_machine);
@@ -413,6 +451,7 @@ int guard_condition_test(void) {
         STATE_MACHINE_STATE_INIT,
         STATE_MACHINE_STATE_RUN,
         TEST_EVENT_ID_RUN,
+        on_transition_handler,
         guard_check_data_exists
     );
 
@@ -421,6 +460,7 @@ int guard_condition_test(void) {
         STATE_MACHINE_STATE_RUN,
         STATE_MACHINE_STATE_ERROR,
         TEST_EVENT_ID_RUN,
+        NULL,
         guard_check_data_value
     );
 
@@ -428,26 +468,26 @@ int guard_condition_test(void) {
     printf("Test 1: Attempting transition with no data\n");
     state_machine_event(state_machine, run_event);
     assert(state_machine->current_state == STATE_MACHINE_STATE_INIT);
-    printf("  ✓ Guard prevented transition without data\n");
+    printf("Guard prevented transition without data\n");
 
     // Test 2: Transition should succeed (with data)
     printf("Test 2: Attempting transition with valid data\n");
     data_event.event_data = &test_data;
     state_machine_event(state_machine, data_event);
     assert(state_machine->current_state == STATE_MACHINE_STATE_RUN);
-    printf("  ✓ Guard allowed transition with data\n");
+    printf("Guard allowed transition with data\n");
 
     // Test 3: Test value-specific guard
     printf("Test 3: Testing value-specific guard\n");
     test_data = 41;  // Wrong value
     state_machine_event(state_machine, data_event);
     assert(state_machine->current_state == STATE_MACHINE_STATE_RUN);
-    printf("  ✓ Guard prevented transition with incorrect value\n");
+    printf("Guard prevented transition with incorrect value\n");
 
     test_data = 42;  // Correct value
     state_machine_event(state_machine, data_event);
     assert(state_machine->current_state == STATE_MACHINE_STATE_ERROR);
-    printf("  ✓ Guard allowed transition with correct value\n");
+    printf("Guard allowed transition with correct value\n");
 
     state_machine_destroy(state_machine);
     printf("\nGuard condition test completed successfully\n\n");
@@ -461,6 +501,6 @@ int main(void) {
     visualization_test();
     performance_test();
     guard_condition_test();
-    //fuzz_test();
+    fuzz_test();
     return 0;
 }

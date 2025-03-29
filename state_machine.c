@@ -78,6 +78,7 @@ void state_machine_add_transition_with_guard(
     state_id_t state_a,
     state_id_t state_b,
     event_id_t event_id,
+    state_machine_event_handler_t on_transition,
     state_machine_guard_t guard) {
   assert(state_machine != NULL);
   assert(state_a < STATE_MACHINE_STATE_MAX);
@@ -89,14 +90,16 @@ void state_machine_add_transition_with_guard(
   state_machine->state_transitions[state_a][event_id].next_state = state_b;
   state_machine->state_transitions[state_a][event_id].event_id = event_id;
   state_machine->state_transitions[state_a][event_id].guard = guard;
+  state_machine->state_transitions[state_a][event_id].on_transition = on_transition;
 }
 
 void state_machine_add_transition(
     state_machine_t *state_machine,
     state_id_t state_a,
     state_id_t state_b,
-    event_id_t event_id) {
-  state_machine_add_transition_with_guard(state_machine, state_a, state_b, event_id, NULL);
+    event_id_t event_id,
+    state_machine_event_handler_t on_transition) {
+  state_machine_add_transition_with_guard(state_machine, state_a, state_b, event_id, on_transition, NULL);
 }
 
 void state_machine_assign_on_enter_handler(state_machine_t *state_machine, state_id_t state, state_machine_event_handler_t on_enter) {
